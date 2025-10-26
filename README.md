@@ -13,37 +13,37 @@ Code Editor/IDE - Visual Studio Code/Cursor
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 The Frontend let's you *Perform CRUDE operations* on the database.
 **The available Sections in Dashboard -**
-> Results
-> Results Manipulation
-> Drivers
-> Constructors
-> Races
-> Cars
-> Status
-> WDC
-> WCC
-> Nested Queries
-> Admin Options
+- Results
+- Results Manipulation
+- Drivers
+- Constructors
+- Races
+- Cars
+- Status
+- WDC
+- WCC
+- Nested Queries
+- Admin Options
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 **This DataBase has-**
-> 10 Drivers
-> 10 Constructors
-> 10 Circuits
-> 10 GPs (Grand Prix)
-> 10 Races
-> 10 Cars
-> 10 Statuses
-> 10 Results
+- 10 Drivers
+- 10 Constructors
+- 10 Circuits
+- 10 GPs (Grand Prix)
+- 10 Races
+- 10 Cars
+- 10 Statuses
+- 10 Results
 As of NOW.
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 **Repo consists-**
-> An ER Diagram
-> A Relational Schema Diagram
-> DDL Commands File
-> Triggers, Functions and Procedures file
-> Necessary Queries file (consisting Nested, Join and Aggregate queries)
-> Frontend python file
-> A Report
+- An ER Diagram
+- A Relational Schema Diagram
+- DDL Commands File
+- Triggers, Functions and Procedures file
+- Necessary Queries file (consisting Nested, Join and Aggregate queries)
+- Frontend python file
+- A Report
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
