@@ -1,21 +1,17 @@
 import streamlit as st
 import mysql.connector
 import pandas as pd
+import os
 
-# -----------------------------
-# ⚙️ MySQL Connection
-# -----------------------------
 def get_connection():
     return mysql.connector.connect(
-        host="localhost",        # ⬅️ change if needed
-        user="root",             # ⬅️ change if needed
-        password="",             # ⬅️ change to your password
-        database="F1"
+        host=os.environ["MYSQLHOST"],
+        user=os.environ["MYSQLUSER"],
+        password=os.environ["MYSQLPASSWORD"],
+        database=os.environ["MYSQLDATABASE"],
+        port=int(os.environ["MYSQLPORT"])
     )
 
-# -----------------------------
-# 🧾 Utility: Fetch SQL as DataFrame
-# -----------------------------
 def run_query(query, params=None):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -32,9 +28,6 @@ def run_query(query, params=None):
         st.error(f"❌ SQL Error: {e.msg}")
         return pd.DataFrame()
 
-# -----------------------------
-# 📦 Stored Procedures
-# -----------------------------
 def call_procedure(proc_name, params=None):
     conn = get_connection()
     cursor = conn.cursor()
@@ -46,16 +39,9 @@ def call_procedure(proc_name, params=None):
     finally:
         cursor.close()
         conn.close()
-
-# -----------------------------
-# 🧩 Session State Initialization
-# -----------------------------
 if "results_df" not in st.session_state:
     st.session_state["results_df"] = pd.DataFrame()
 
-# -----------------------------
-# 🧩 Utility to refresh Results table
-# -----------------------------
 def refresh_results_table():
     df = run_query("""
         SELECT r.Race_ID,
@@ -68,9 +54,6 @@ def refresh_results_table():
     st.session_state["results_df"] = df
     return df
 
-# -----------------------------
-# 🧩 UI Setup
-# -----------------------------
 st.set_page_config(page_title="F1 Database Dashboard", layout="wide")
 
 st.sidebar.title("🏎️ F1 Database Dashboard")
@@ -90,9 +73,6 @@ section = st.sidebar.radio("Select Section", [
 
 st.title(f"📘 {section}")
 
-# -----------------------------
-# 🔍 Results Section
-# -----------------------------
 if section == "Results":
     st.subheader("Race Results")
     df = refresh_results_table()
@@ -101,9 +81,6 @@ if section == "Results":
     else:
         st.dataframe(df)
 
-# -----------------------------
-# ⚙️ Results Manipulation Section
-# -----------------------------
 elif section == "Results Manipulation":
     st.subheader("🧩 Manage Results")
 
@@ -174,25 +151,78 @@ elif section == "Results Manipulation":
         df = refresh_results_table()
         st.dataframe(df)
 
-# -----------------------------
-# 👨‍✈️ Drivers Section
-# -----------------------------
 elif section == "Drivers":
     st.subheader("Driver Information")
-    df = run_query("SELECT * FROM Drivers;")
+    
+    st.markdown("### ➕ Add New Driver")
+    with st.form("add_driver_form"):
+        driver_id = st.number_input("Driver ID", min_value=1)
+        forename = st.text_input("Forename")
+        surname = st.text_input("Surname")
+        dob = st.date_input("Date of Birth")
+        nationality = st.text_input("Nationality")
+        submitted = st.form_submit_button("Add Driver")
+        
+        if submitted and forename and surname and nationality:
+            conn = get_connection()
+            cursor = conn.cursor()
+            try:
+                cursor.execute("""
+                    INSERT INTO Drivers (Driver_ID, Forename, Surname, DOB, Nationality) 
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (driver_id, forename, surname, dob, nationality))
+                conn.commit()
+                st.success("✅ Driver added successfully!")
+            except mysql.connector.Error as e:
+                st.error(f"❌ Error adding driver: {e.msg}")
+            finally:
+                cursor.close()
+                conn.close()
+    
+    st.divider()
+    df = run_query("""
+        SELECT Driver_ID, Forename, Surname, 
+               DATE_FORMAT(DOB, '%Y-%m-%d') as DOB, 
+               Nationality 
+        FROM Drivers 
+        ORDER BY Driver_ID;
+    """)
     st.dataframe(df)
 
-# -----------------------------
-# 🏗️ Constructors Section
-# -----------------------------
 elif section == "Constructors":
     st.subheader("Constructors")
-    df = run_query("SELECT * FROM Constructors;")
+    
+    st.markdown("### ➕ Add New Constructor")
+    with st.form("add_constructor_form"):
+        constructor_id = st.number_input("Constructor ID", min_value=1)
+        con_name = st.text_input("Constructor Name")
+        nationality = st.text_input("Nationality")
+        submitted = st.form_submit_button("Add Constructor")
+        
+        if submitted and con_name and nationality:
+            conn = get_connection()
+            cursor = conn.cursor()
+            try:
+                cursor.execute("""
+                    INSERT INTO Constructors (Constructor_ID, Con_Name, Nationality) 
+                    VALUES (%s, %s, %s)
+                """, (constructor_id, con_name, nationality))
+                conn.commit()
+                st.success("✅ Constructor added successfully!")
+            except mysql.connector.Error as e:
+                st.error(f"❌ Error adding constructor: {e.msg}")
+            finally:
+                cursor.close()
+                conn.close()
+    
+    st.divider()
+    df = run_query("""
+        SELECT Constructor_ID, Con_Name, Nationality 
+        FROM Constructors 
+        ORDER BY Constructor_ID;
+    """)
     st.dataframe(df)
 
-# -----------------------------
-# 🏁 Races Section
-# -----------------------------
 elif section == "Races":
     st.subheader("Races Overview")
     df = run_query("""
@@ -202,10 +232,6 @@ elif section == "Races":
         JOIN Circuits c ON r.Circuit_ID = c.Circuit_ID;
     """)
     st.dataframe(df)
-
-# -----------------------------
-# 🚗 Cars Section
-# -----------------------------
 elif section == "Cars":
     st.subheader("Cars")
     df = run_query("""
@@ -214,20 +240,42 @@ elif section == "Cars":
         JOIN Constructors con ON c.Constructor_ID = con.Constructor_ID;
     """)
     st.dataframe(df)
-
-# -----------------------------
-# 🏳️ Status Section
-# -----------------------------
 elif section == "Status":
     st.subheader("Race Status Types")
-    df = run_query("SELECT * FROM Status;")
+    
+    # Add new status form
+    st.markdown("Add New Status")
+    with st.form("add_status_form"):
+        status_id = st.number_input("Status ID", min_value=1)
+        status = st.text_input("Status Description")
+        submitted = st.form_submit_button("Add Status")
+        
+        if submitted and status:
+            conn = get_connection()
+            cursor = conn.cursor()
+            try:
+                cursor.execute("""
+                    INSERT INTO Status (Status_ID, Status) 
+                    VALUES (%s, %s)
+                """, (status_id, status))
+                conn.commit()
+                st.success("✅ Status added successfully!")
+            except mysql.connector.Error as e:
+                st.error(f"❌ Error adding status: {e.msg}")
+            finally:
+                cursor.close()
+                conn.close()
+    
+    st.divider()
+    # Display status table
+    df = run_query("""
+        SELECT Status_ID, Status 
+        FROM Status 
+        ORDER BY Status_ID;
+    """)
     st.dataframe(df)
-
-# -----------------------------
-# 🏆 World Drivers Championship (WDC)
-# -----------------------------
 elif section == "WDC":
-    st.subheader("🏆 World Drivers Championship (WDC) Standings")
+    st.subheader("World Drivers Championship (WDC) Standings")
     df = run_query("""
         SELECT d.Driver_ID, getDriverFullName(d.Driver_ID) AS Driver, SUM(r.Points) AS Total_Points
         FROM Results r
@@ -236,12 +284,8 @@ elif section == "WDC":
         ORDER BY Total_Points DESC;
     """)
     st.dataframe(df)
-
-# -----------------------------
-# 🏆 World Constructors Championship (WCC)
-# -----------------------------
 elif section == "WCC":
-    st.subheader("🏆 World Constructors Championship (WCC) Standings")
+    st.subheader("World Constructors Championship (WCC) Standings")
     df = run_query("""
         SELECT c.Constructor_ID, c.Con_Name AS Constructor, SUM(r.Points) AS Total_Points
         FROM Results r
@@ -255,7 +299,7 @@ elif section == "WCC":
 # 🔍 Nested Query Section
 # -----------------------------
 elif section == "Nested Query":
-    st.markdown("### 🔎 Nested Query: Drivers who scored points in all their races")
+    st.markdown("Nested Query: Drivers who scored points in all their races")
     if st.button("Run nested query: always-scored"):
         nested_df = run_query("""
             SELECT d.Driver_ID,
@@ -275,7 +319,7 @@ elif section == "Nested Query":
 # 🔐 Admin Options Section
 # -----------------------------
 elif section == "Admin Options":
-    st.markdown("### 🔐 Create DB User (Admin only)")
+    st.markdown("Create DB User (Admin only)")
     new_user = st.text_input("New DB username")
     new_pass = st.text_input("New DB password", type="password")
     privilege = st.selectbox("Grant privilege", ["SELECT", "INSERT", "UPDATE", "DELETE", "ALL"])
