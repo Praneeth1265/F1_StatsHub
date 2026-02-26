@@ -49,15 +49,17 @@ def refresh_results_table():
     df = run_query("""
         SELECT r.Race_ID,
                CONCAT_WS(' ', d.Forename, d.Surname) AS Driver,
-               r.Constructor_ID, r.Car_ID,
-               r.Position_Order, r.Grid, r.Points,
-               r.Status_ID, r.RaceRank
+               r.Constructor_ID,
+               r.Car_ID,
+               r.Position_Order,
+               r.Grid,
+               r.Points,
+               r.Status_ID
         FROM Results r
         JOIN Drivers d ON r.Driver_ID = d.Driver_ID
-        ORDER BY Race_ID, Position_Order;
+        ORDER BY r.Race_ID, r.Position_Order;
     """)
     return df
-
 # -----------------------------
 # STREAMLIT UI
 # -----------------------------
