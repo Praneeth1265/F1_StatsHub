@@ -62,7 +62,17 @@ def refresh_results_table():
 # STREAMLIT UI
 # -----------------------------
 st.set_page_config(page_title="F1 Database Dashboard", layout="wide")
-
+st.markdown("""
+<style>
+.main {
+    background-color: #0E1117;
+    color: white;
+}
+h1, h2, h3 {
+    color: #E10600;
+}
+</style>
+""", unsafe_allow_html=True)
 st.sidebar.title("🏎️ F1 Database Dashboard")
 section = st.sidebar.radio("Select Section", [
     "Results",
@@ -70,6 +80,8 @@ section = st.sidebar.radio("Select Section", [
     "Drivers",
     "Constructors",
     "WDC",
+    "WCC",
+    "Analytics",
     "Nested Query"
 ])
 
@@ -216,6 +228,59 @@ elif section == "WDC":
     """)
     st.dataframe(df)
 
+elif section == "WCC":
+
+    st.subheader("🏭 World Constructors Championship")
+
+    df = run_query("""
+        SELECT c.Constructor_ID,
+               c.Con_Name AS Constructor,
+               SUM(r.Points) AS Total_Points
+        FROM Results r
+        JOIN Constructors c 
+        ON r.Constructor_ID = c.Constructor_ID
+        GROUP BY c.Constructor_ID
+        ORDER BY Total_Points DESC;
+    """)
+
+    if df.empty:
+        st.warning("No constructor data found.")
+    else:
+        st.dataframe(df)
+
+elif section == "Analytics":
+
+    st.subheader("📊 Championship Analytics")
+
+    # Drivers Points Chart
+    driver_df = run_query("""
+        SELECT d.Driver_ID,
+               CONCAT_WS(' ', d.Forename, d.Surname) AS Driver,
+               SUM(r.Points) AS Total_Points
+        FROM Results r
+        JOIN Drivers d ON r.Driver_ID = d.Driver_ID
+        GROUP BY d.Driver_ID
+        ORDER BY Total_Points DESC;
+    """)
+
+    if not driver_df.empty:
+        st.markdown("### 🏎️ Driver Points Distribution")
+        st.bar_chart(driver_df.set_index("Driver")["Total_Points"])
+
+    # Constructors Points Chart
+    constructor_df = run_query("""
+        SELECT c.Con_Name AS Constructor,
+               SUM(r.Points) AS Total_Points
+        FROM Results r
+        JOIN Constructors c 
+        ON r.Constructor_ID = c.Constructor_ID
+        GROUP BY c.Constructor_ID
+        ORDER BY Total_Points DESC;
+    """)
+
+    if not constructor_df.empty:
+        st.markdown("### 🏭 Constructor Points Distribution")
+        st.bar_chart(constructor_df.set_index("Constructor")["Total_Points"])
 # -----------------------------
 # NESTED QUERY
 # -----------------------------
